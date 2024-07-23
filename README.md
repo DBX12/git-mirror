@@ -40,3 +40,21 @@ See [the example config](example-config.toml) for more advanced configurations.
 ## Authentication and authorisation
 
 If you wish to control access to the mirror or specific repositories, consider proxying to `git-mirror` using a web server such as Nginx.
+
+## Git configuration
+
+Use this configuration to make sure that your Git repositories use the mirror as the origin:
+
+```
+# rewrite all git:// URLs to use the mirror
+[url "http://localhost:8080"]
+    insteadOf = git://
+
+# rewrite all GitHub URLs to use the mirror
+[url "http://localhost:8080/github.com/"]
+    insteadOf = git@github.com:
+    insteadOf = https://github.com/    
+```
+
+When using this configuration, you need to set the environment variable `GIT_CONFIG_GLOBAL=/dev/null` to disable the global Git configuration when running `git-mirror`.
+You can also set the `-on-demand` flag which sets this variable to all invocations of git commands made by this program.
