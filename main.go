@@ -17,7 +17,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := os.MkdirAll(cfg.BasePath, 0755); err != nil {
+	if err = os.MkdirAll(cfg.BasePath, 0755); err != nil {
 		log.Fatalf("failed to create %s, %s", cfg.BasePath, err)
 	}
 
