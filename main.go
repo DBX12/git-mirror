@@ -10,6 +10,7 @@ import (
 
 func main() {
 	configPath := flag.String("config", "config.toml", "Path to config file")
+	noUpdate := flag.Bool("no-update", false, "Don't update mirrors automatically")
 	flag.Parse()
 
 	if configPath == nil {
@@ -34,6 +35,9 @@ func main() {
 					log.Printf("error updating %s, %s", r.Name, err)
 				} else {
 					log.Printf("updated %s", r.Name)
+				}
+				if *noUpdate {
+					break
 				}
 				time.Sleep(r.Interval.Duration)
 			}
