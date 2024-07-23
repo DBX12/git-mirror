@@ -1,10 +1,10 @@
 package main
 
 import (
-	"path/filepath"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -35,7 +35,7 @@ func (d *duration) UnmarshalText(text []byte) (err error) {
 
 func parseConfig(filename string) (cfg config, repos map[string]repo, err error) {
 	// Parse the raw TOML file.
-	raw, err := ioutil.ReadFile(filename)
+	raw, err := os.ReadFile(filename)
 	if err != nil {
 		err = fmt.Errorf("unable to read config file %s, %s", filename, err)
 		return
