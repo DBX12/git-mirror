@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -8,11 +9,14 @@ import (
 )
 
 func main() {
-	// Parse config.
-	if len(os.Args) != 2 {
-		log.Fatal("please specify the path to a config file, an example config is available at https://github.com/beefsack/git-mirror/blob/master/example-config.toml")
+	configPath := flag.String("config", "config.toml", "Path to config file")
+	flag.Parse()
+
+	if configPath == nil {
+		log.Fatal("The -config flag is mandatory, an example config is available at https://github.com/beefsack/git-mirror/blob/master/example-config.toml")
 	}
-	cfg, repos, err := parseConfig(os.Args[1])
+
+	cfg, repos, err := parseConfig(*configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
