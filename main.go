@@ -2,9 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"strings"
 	"time"
 )
 
@@ -44,8 +47,27 @@ func main() {
 		}(r)
 	}
 
-	// Run HTTP server to serve mirrors.
-	http.Handle("/", http.FileServer(http.Dir(cfg.BasePath)))
+	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		parts := strings.SplitN(request.URL.Path, "/", 5)
+		combined := strings.Join(parts[1:4], "/")
+		_, statErr := os.Stat(path.Join(cfg.BasePath, combined))
+		if os.IsNotExist(statErr) {
+			log.Printf("Repository not in cache: %s", combined)
+			r := repo{
+				Name:     combined,
+				Origin:   fmt.Sprintf("https://%s", combined),
+				Interval: duration{Duration: cfg.Interval.Duration},
+			}
+			err = mirror(cfg, r)
+			if err != nil {
+				log.Printf("Mirror-on-demand error: %s", err)
+			}
+		}
+
+		// file exists (now), let the builtin handler serve it
+		http.FileServer(http.Dir(cfg.BasePath)).ServeHTTP(writer, request)
+	})
+
 	log.Printf("starting web server on %s", cfg.ListenAddr)
 	if err := http.ListenAndServe(cfg.ListenAddr, nil); err != nil {
 		log.Fatalf("failed to start server, %s", err)
