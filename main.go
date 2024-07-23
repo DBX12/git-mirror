@@ -11,16 +11,21 @@ import (
 	"time"
 )
 
+var flags struct {
+	configPath *string
+	noUpdate   *bool
+}
+
 func main() {
-	configPath := flag.String("config", "config.toml", "Path to config file")
-	noUpdate := flag.Bool("no-update", false, "Don't update mirrors automatically")
+	flags.configPath = flag.String("config", "config.toml", "Path to config file")
+	flags.noUpdate = flag.Bool("no-update", false, "Don't update mirrors automatically")
 	flag.Parse()
 
-	if configPath == nil {
+	if flags.configPath == nil {
 		log.Fatal("The -config flag is mandatory, an example config is available at https://github.com/beefsack/git-mirror/blob/master/example-config.toml")
 	}
 
-	cfg, repos, err := parseConfig(*configPath)
+	cfg, repos, err := parseConfig(*flags.configPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,7 +44,7 @@ func main() {
 				} else {
 					log.Printf("updated %s", r.Name)
 				}
-				if *noUpdate {
+				if *flags.noUpdate {
 					break
 				}
 				time.Sleep(r.Interval.Duration)
