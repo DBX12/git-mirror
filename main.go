@@ -14,11 +14,13 @@ import (
 var flags struct {
 	configPath *string
 	noUpdate   *bool
+	onDemand   *bool
 }
 
 func main() {
 	flags.configPath = flag.String("config", "config.toml", "Path to config file")
 	flags.noUpdate = flag.Bool("no-update", false, "Don't update mirrors automatically")
+	flags.onDemand = flag.Bool("on-demand", false, "Enable on-demand mirroring. This disables the global git configuration.")
 	flag.Parse()
 
 	if flags.configPath == nil {
@@ -52,26 +54,30 @@ func main() {
 		}(r)
 	}
 
-	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		parts := strings.SplitN(request.URL.Path, "/", 5)
-		combined := strings.Join(parts[1:4], "/")
-		_, statErr := os.Stat(path.Join(cfg.BasePath, combined))
-		if os.IsNotExist(statErr) {
-			log.Printf("Repository not in cache: %s", combined)
-			r := repo{
-				Name:     combined,
-				Origin:   fmt.Sprintf("https://%s", combined),
-				Interval: duration{Duration: cfg.Interval.Duration},
+	if *flags.onDemand == false {
+		http.Handle("/", http.FileServer(http.Dir(cfg.BasePath)))
+	} else {
+		http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+			parts := strings.SplitN(request.URL.Path, "/", 5)
+			combined := strings.Join(parts[1:4], "/")
+			_, statErr := os.Stat(path.Join(cfg.BasePath, combined))
+			if os.IsNotExist(statErr) {
+				log.Printf("Repository not in cache: %s", combined)
+				r := repo{
+					Name:     combined,
+					Origin:   fmt.Sprintf("https://%s", combined),
+					Interval: duration{Duration: cfg.Interval.Duration},
+				}
+				err = mirror(cfg, r)
+				if err != nil {
+					log.Printf("Mirror-on-demand error: %s", err)
+				}
 			}
-			err = mirror(cfg, r)
-			if err != nil {
-				log.Printf("Mirror-on-demand error: %s", err)
-			}
-		}
 
-		// file exists (now), let the builtin handler serve it
-		http.FileServer(http.Dir(cfg.BasePath)).ServeHTTP(writer, request)
-	})
+			// file exists (now), let the builtin handler serve it
+			http.FileServer(http.Dir(cfg.BasePath)).ServeHTTP(writer, request)
+		})
+	}
 
 	log.Printf("starting web server on %s", cfg.ListenAddr)
 	if err := http.ListenAndServe(cfg.ListenAddr, nil); err != nil {
